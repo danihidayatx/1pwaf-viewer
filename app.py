@@ -1,12 +1,26 @@
 import sqlite3
 import os
 import glob
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
+
+@app.before_request
+def require_auth():
+    env_user = os.environ.get('BASIC_AUTH_USERNAME')
+    env_pass = os.environ.get('BASIC_AUTH_PASSWORD')
+    
+    if env_user and env_pass:
+        auth = request.authorization
+        if not auth or not (auth.username == env_user and auth.password == env_pass):
+            return Response(
+                'Authentication required.\n', 401,
+                {'WWW-Authenticate': 'Basic realm="Login Required"'}
+            )
+
 
 # use production data dir if exists, fallback to local data dir
 PROD_DATA_DIR = '/opt/1panel/apps/openresty/openresty/1pwaf/data'
