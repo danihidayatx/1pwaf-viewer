@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-3">Dashboard</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">WAF Total Requests</h5>
+                <h2 class="card-text">{{ stats.waf_total_req | default(0) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <h5 class="card-title">WAF Total Attacks</h5>
+                <h2 class="card-text">{{ stats.waf_total_attacks | default(0) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h5 class="card-title">Detailed Attack Logs</h5>
+                <h2 class="card-text">{{ stats.total_attacks | default(0) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Detailed Block Logs</h5>
+                <h2 class="card-text">{{ stats.total_blocks | default(0) }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Quick Actions</h5>
+                <a href="/waf-logs" class="btn btn-primary"><i class="fa-solid fa-bug"></i> View Attack Logs</a>
+                <a href="/site-logs" class="btn btn-secondary"><i class="fa-solid fa-globe"></i> View Site Traffic Logs</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

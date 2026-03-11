@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-3">Site Traffic Logs</h2>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="siteForm" class="row g-3 align-items-center">
+                    <div class="col-auto">
+                        <label for="siteSelect" class="col-form-label">Select Site:</label>
+                    </div>
+                    <div class="col-auto">
+                        <select id="siteSelect" class="form-select">
+                            <option value="">-- Choose a Site --</option>
+                            {% for site in sites %}
+                            <option value="{{ site }}">{{ site }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" id="loadBtn" class="btn btn-primary">Load Logs</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="tableContainer" style="display: none;">
+    <div class="col-12">
+        <div class="table-responsive">
+            <table id="siteLogsTable" class="table table-striped table-hover" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>IP</th>
+                        <th>Method</th>
+                        <th>URI</th>
+                        <th>Status</th>
+                        <th>Resp Time</th>
+                        <th>Browser</th>
+                        <th>OS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let dataTable;
+
+$(document).ready(function() {
+    $('#loadBtn').click(function() {
+        const site = $('#siteSelect').val();
+        if (!site) {
+            alert("Please select a site first.");
+            return;
+        }
+
+        $('#tableContainer').show();
+
+        if (dataTable) {
+            dataTable.ajax.url(`/api/site-logs/${site}`).load();
+        } else {
+            dataTable = $('#siteLogsTable').DataTable({
+                "processing": true,
+                "serverSide": true,
+                "ajax": `/api/site-logs/${site}`,
+                "columns": [
+                    { "data": "localtime" },
+                    { "data": "ip" },
+                    { "data": "method" },
+                    { "data": "uri", "render": function(data) { return `<div style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${data}">${data}</div>`; } },
+                    { "data": "status_code", "render": function(data) { 
+                        let color = data >= 400 ? 'danger' : (data >= 300 ? 'warning' : 'success');
+                        return `<span class="badge bg-${color}">${data}</span>`; 
+                    }},
+                    { "data": "request_time", "render": function(data) { return data + ' ms'; } },
+                    { "data": "browser" },
+                    { "data": "os" }
+                ],
+                "order": [[0, "desc"]]
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

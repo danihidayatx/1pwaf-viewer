@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-3">WAF Attack Logs</h2>
+        <p class="text-muted">Viewing data from <code>db/req_log.db</code></p>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="filterForm" class="row g-3 align-items-center">
+                    <div class="col-auto">
+                        <label for="serverNameSelect" class="col-form-label">Filter by Domain:</label>
+                    </div>
+                    <div class="col-auto">
+                        <select id="serverNameSelect" class="form-select">
+                            <option value="">-- All Domains --</option>
+                            {% for site in sites %}
+                            <option value="{{ site }}">{{ site }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="table-responsive">
+            <table id="wafLogsTable" class="table table-striped table-hover" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>IP / User Agent</th>
+                        <th>Server</th>
+                        <th>Method</th>
+                        <th>URI</th>
+                        <th>Reason / Rule</th>
+                        <th>Action / Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    let table = $('#wafLogsTable').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "ajax": {
+            "url": "/api/waf-logs",
+            "data": function ( d ) {
+                d.server_name = $('#serverNameSelect').val();
+            }
+        },
+        "columns": [
+            { "data": "localtime" },
+            { 
+                "data": "ip",
+                "render": function(data, type, row) {
+                    return `<strong>${data}</strong><br><small class="text-muted" style="font-size: 0.75rem; word-break: break-all;">${row.user_agent || ''}</small>`;
+                }
+            },
+            { "data": "server_name" },
+            { "data": "method" },
+            { 
+                "data": "uri",
+                "render": function(data) {
+                    return `<div style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${data}">${data}</div>`;
+                }
+            },
+            { 
+                "data": null,
+                "render": function(data, type, row) {
+                    let rule = row.match_rule ? row.match_rule : '';
+                    let exec = row.exec_rule ? `<span class="badge bg-secondary">${row.exec_rule}</span>` : '';
+                    return exec + (rule ? `<br><small>${rule}</small>` : '');
+                }
+            },
+            { 
+                "data": null,
+                "render": function(data, type, row) {
+                    let badges = '';
+                    if (row.is_attack) {
+                        badges += '<span class="badge badge-attack me-1">Attack</span>';
+                    }
+                    if (row.is_block) {
+                        badges += '<span class="badge badge-block me-1">Blocked</span>';
+                    }
+                    if (!row.is_attack && !row.is_block) {
+                        badges += '<span class="badge badge-safe me-1">Safe</span>';
+                    }
+                    if (row.action) {
+                        let actionColor = row.action === 'deny' ? 'danger' : 'secondary';
+                        badges += `<br><span class="badge bg-${actionColor} mt-1">${row.action}</span>`;
+                    }
+                    return badges;
+                }
+            }
+        ],
+        "order": [[0, "desc"]]
+    });
+
+    $('#serverNameSelect').change(function() {
+        table.ajax.reload();
+    });
+});
+</script>
+{% endblock %}
