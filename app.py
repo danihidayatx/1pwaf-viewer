@@ -22,15 +22,13 @@ def require_auth():
             )
 
 
-# use production data dir if exists, fallback to local data dir
-PROD_DATA_DIR = '/opt/1panel/apps/openresty/openresty/1pwaf/data'
 LOCAL_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
-
-DATA_DIR = os.environ.get('WAF_DATA_DIR', PROD_DATA_DIR if os.path.exists(PROD_DATA_DIR) else LOCAL_DATA_DIR)
+env_data_dir = os.environ.get('WAF_DATA_DIR')
+DATA_DIR = env_data_dir if env_data_dir and os.path.exists(env_data_dir) else LOCAL_DATA_DIR
 
 DB_DIR = os.path.join(DATA_DIR, 'db')
 
-print(f"[*] Menggunakan Database Directory: {DB_DIR}")
+print(f"[*] Using Database Directory: {DB_DIR}")
 
 def get_db_connection(db_path):
     conn = sqlite3.connect(db_path)
