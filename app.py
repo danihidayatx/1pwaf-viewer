@@ -2,19 +2,17 @@ import sqlite3
 import os
 import glob
 from flask import Flask, render_template, request, jsonify
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
-# Gunakan path produksi 1Panel jika ada, fallback ke folder 'data' lokal
+# use production data dir if exists, fallback to local data dir
 PROD_DATA_DIR = '/opt/1panel/apps/openresty/openresty/1pwaf/data'
 LOCAL_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
-if os.environ.get('WAF_DATA_DIR'):
-    DATA_DIR = os.environ.get('WAF_DATA_DIR')
-elif os.path.exists(PROD_DATA_DIR):
-    DATA_DIR = PROD_DATA_DIR
-else:
-    DATA_DIR = LOCAL_DATA_DIR
+DATA_DIR = os.environ.get('WAF_DATA_DIR', PROD_DATA_DIR if os.path.exists(PROD_DATA_DIR) else LOCAL_DATA_DIR)
 
 DB_DIR = os.path.join(DATA_DIR, 'db')
 
@@ -243,4 +241,5 @@ def api_site_logs(site_name):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('APP_PORT', 5000))
+    app.run(debug=True, port=port)

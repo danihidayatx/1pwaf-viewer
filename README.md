@@ -1,119 +1,67 @@
 # 1Panel WAF & Logs Viewer
 
-Sebuah aplikasi *viewer* berbasis Python Flask yang ringan dan interaktif untuk membaca log serangan WAF dan log traffic website langsung dari database SQLite bawaan **1Panel OpenResty WAF**.
+A lightweight, interactive Python Flask-based viewer application to read WAF attack logs and website traffic logs directly from the built-in SQLite database of **1Panel OpenResty WAF**.
 
-Aplikasi ini membaca data langsung dari direktori produksi 1Panel WAF secara *real-time* tanpa perlu menyalin atau menduplikasi database. Dilengkapi dengan antarmuka berbasis Bootstrap 5 dan DataTables untuk pencarian, pengurutan, dan paginasi yang cepat, bahkan untuk puluhan ribu baris log.
+This application reads data directly from the 1Panel WAF production directory in *real-time* without the need to copy or duplicate the database. It features a Bootstrap 5 and DataTables-based interface for fast searching, sorting, and pagination, even for tens of thousands of log rows.
 
-## Fitur
+## Features
 
-*   **Dashboard Ringkasan:** Menampilkan total permintaan, serangan, dan log yang diblokir.
-*   **WAF Attack Logs Viewer:** Melihat detail serangan yang diblokir oleh WAF, lengkap dengan IP, *Rule Match*, dan tindakan yang diambil.
-*   **Site Traffic Logs Viewer:** Melihat log *traffic* spesifik per website (HTTP Status, URI, Response Time, dll) yang tersedia di 1Panel.
-*   **Real-time Database Access:** Membaca database bawaan `/opt/1panel/apps/openresty/openresty/1pwaf/data/db` secara langsung jika dijalankan di server produksi.
+*   **Summary Dashboard:** Displays total requests, attacks, and blocked logs.
+*   **WAF Attack Logs Viewer:** View details of attacks blocked by the WAF, complete with IP, *Rule Match*, and the action taken.
+*   **Site Traffic Logs Viewer:** View specific *traffic* logs per website (HTTP Status, URI, Response Time, etc.) available in 1Panel.
+*   **Real-time Database Access:** Reads the built-in `/opt/1panel/apps/openresty/openresty/1pwaf/data/db` database directly if run on a production server.
 
-## Persyaratan Sistem
+## System Requirements
 
 *   Python 3.8+
-*   Akses *root* (atau permission membaca direktori WAF 1Panel) jika dijalankan di server produksi.
+*   *Root* access (or read permission to the 1Panel WAF directory) if run on a production server.
 
-## Instalasi (Lokal / Development)
+## Installation (Local / Development)
 
-1. Clone repositori ini atau salin semua file ke dalam satu folder.
-2. Buat Virtual Environment (opsional tapi disarankan):
+1. Clone this repository or copy all files into a single folder.
+2. Create a Virtual Environment (optional but recommended):
    ```bash
    python3 -m venv venv
    source venv/bin/activate
    ```
-3. Install dependensi (termasuk Flask dan Gunicorn):
+3. Install dependencies (including Flask and Gunicorn):
    ```bash
    pip install -r requirements.txt
    ```
-4. Jalankan aplikasi Flask:
+4. Run the Flask application:
    ```bash
    python3 app.py
    ```
-5. Buka di browser: `http://127.0.0.1:5000`
+5. Open in browser: `http://127.0.0.1:5000`
 
-> **Catatan:** Jika dijalankan di lokal, aplikasi akan mencari file database di folder `db` yang berada di direktori yang sama dengan `app.py`.
+> **Note:** If run locally, the application will look for database files in the `db` folder located in the same directory as `app.py`.
 
-## Tutorial Deployment ke Server Produksi (Menggunakan Gunicorn & Systemd)
+## Deployment (1Panel UI)
 
-Untuk menjalankan aplikasi ini secara *real-time* di server produksi (tempat 1Panel Anda berada), ikuti langkah-langkah berikut:
+Since this application is intended to work alongside your 1Panel setup, you can easily deploy it directly through the 1Panel dashboard using the Python runtime environment.
 
-### 1. Persiapkan Aplikasi
+1. Ensure you have copied/cloned the application to your server (e.g., `/home/ubuntu/1pwaf-viewer`).
+2. In the 1Panel Dashboard, navigate to the Python App creation section (e.g., **Websites > Runtimes > Python**) and add a new application.
+3. Fill out the application form with the following details:
+   - **Name:** `1pwaf-viewer`
+   - **Application Directory:** `/home/ubuntu/1pwaf-viewer` (adjust to your actual path)
+   - **Run script:** `pip install -r requirements.txt && gunicorn -w 4 -b 0.0.0.0:5000 app:app`
+   - **App port:** `5000`
+   - **External port:** `5000` (or any other available port)
+   - **External access:** Enable / Add
+   - **Container name:** `1pwaf-viewer`
+4. Confirm and let 1Panel deploy the application. 
 
-Salin folder aplikasi ini ke server produksi Anda (misal ke direktori `/opt/1pwaf-viewer`).
+> **Important:** Since the app runs inside a container, ensure that the container has volume mappings or permissions to read the OpenResty WAF database directory, or configure `WAF_DATA_DIR` in your `.env` file appropriately.
 
-```bash
-cd /opt
-sudo git clone <url_repo_anda> 1pwaf-viewer  # Atau gunakan scp/ftp untuk mengunggah file
-cd 1pwaf-viewer
-```
+### Reverse Proxy Configuration (Optional but Recommended)
 
-### 2. Install Dependensi
+If you want to access the application using a domain (e.g., `waf.yourdomain.com`) with HTTPS:
 
-Sangat disarankan menggunakan virtual environment agar tidak mengganggu sistem Python bawaan OS.
+1. Open 1Panel Dashboard -> **Websites**.
+2. Click **Create Website** -> Select the **Reverse Proxy** tab.
+3. Enter your domain (example: `waf.yourdomain.com`).
+4. In the **Proxy Target** section, enter `http://127.0.0.1:5000` (or the corresponding container IP and port).
+5. Save and configure SSL as usual through the 1Panel menu.
 
-```bash
-sudo apt update && sudo apt install python3-venv python3-pip -y  # Untuk Ubuntu/Debian
-sudo python3 -m venv venv
-sudo venv/bin/pip install -r requirements.txt
-```
-
-### 3. Konfigurasi Systemd Service
-
-Agar aplikasi berjalan di latar belakang dan otomatis *restart* saat server *reboot*, kita buat *service file* untuk `systemd`.
-
-Buat file baru:
-```bash
-sudo nano /etc/systemd/system/1pwaf-viewer.service
-```
-
-Isi dengan konfigurasi berikut (sesuaikan *path* jika Anda menempatkannya di direktori lain):
-
-```ini
-[Unit]
-Description=Gunicorn instance to serve 1Panel WAF Viewer
-After=network.target
-
-[Service]
-User=root
-Group=root
-WorkingDirectory=/opt/1pwaf-viewer
-Environment="PATH=/opt/1pwaf-viewer/venv/bin"
-# Binding ke port 5000 (sesuaikan jika port ini sudah terpakai)
-ExecStart=/opt/1pwaf-viewer/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:5000 app:app
-
-[Install]
-WantedBy=multi-user.target
-```
-
-*Catatan: Kita menggunakan user `root` agar aplikasi memiliki izin (permission) untuk membaca database SQLite milik OpenResty WAF di direktori `/opt/1panel/apps/...`. Jika tidak menggunakan root, pastikan user yang Anda set memiliki hak akses baca (read) ke direktori database WAF.*
-
-### 4. Mulai Service
-
-Aktifkan dan jalankan service yang baru saja dibuat:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl start 1pwaf-viewer
-sudo systemctl enable 1pwaf-viewer
-```
-
-Cek status service untuk memastikan aplikasi berjalan tanpa error:
-
-```bash
-sudo systemctl status 1pwaf-viewer
-```
-
-### 5. Konfigurasi Reverse Proxy (Opsional tapi Disarankan)
-
-Aplikasi sekarang berjalan di `http://IP_SERVER:5000`. Jika Anda ingin mengaksesnya menggunakan domain (misal: `waf.domainanda.com`) dan menggunakan HTTPS, Anda bisa mengatur Reverse Proxy langsung dari 1Panel:
-
-1. Buka 1Panel Dashboard -> **Websites**.
-2. Klik **Create Website** -> Pilih tab **Reverse Proxy**.
-3. Masukkan domain Anda (contoh: `waf.domainanda.com`).
-4. Di bagian **Proxy Target**, masukkan `http://127.0.0.1:5000`.
-5. Simpan dan konfigurasikan SSL seperti biasa melalui menu 1Panel.
-
-Sekarang Anda bisa mengakses 1Panel WAF Viewer secara aman melalui domain Anda!
+Now you can safely access the 1Panel WAF Viewer through your domain!
