@@ -14,32 +14,27 @@ This application reads data directly from the 1Panel WAF production directory in
 
 ## System Requirements
 
-*   Python 3.8+
-*   *Root* access (or read permission to the 1Panel WAF directory) if run on a production server.
+*   Docker and Docker Compose
+*   *Root* access (to allow Docker to mount the 1Panel WAF directory)
 
-## Installation (Local / Development)
+## Setup & Deployment (Docker)
 
-1. Clone this repository or copy all files into a single folder.
-2. Create a Virtual Environment (optional but recommended):
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-3. Install dependencies (including Flask and Gunicorn):
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Copy the environment template and configure (see Security section below):
+This is the recommended way to run the application as it provides isolation and handles the necessary permissions to read 1Panel data via volume mounting.
+
+1. Clone this repository or copy all files into a folder on your server.
+2. Copy the environment template to create your `.env` file:
    ```bash
    cp .env.example .env
    ```
-5. Run the Flask application:
+3. Configure your `.env` file:
+   - `WAF_DATA_DIR`: Set this to the path where 1Panel WAF data is stored (default: `/opt/1panel/apps/openresty/openresty/1pwaf/data`).
+   - `APP_PORT`: The port you want to use (default: `5000`).
+   - `BASIC_AUTH_USERNAME` & `BASIC_AUTH_PASSWORD`: Set these to secure your logs.
+4. Build and start the container:
    ```bash
-   python3 app.py
+   docker compose up -d --build
    ```
-6. Open in browser: `http://127.0.0.1:5000`
-
-> **Note:** If run locally, the application will look for database files in the `db` folder located in the same directory as `app.py`.
+5. The application will be accessible at `http://your-server-ip:5000`.
 
 ## Security & Authentication
 
@@ -53,39 +48,26 @@ To protect your logs from unauthorized access, it is highly recommended to enabl
    ```
 If you leave these variables blank or commented out, the application will be accessible without a password.
 
-## Deployment & Production Security (1Panel UI)
+## Production Access & Security
 
-**⚠️ IMPORTANT:** Do not expose the application port (e.g., `5000`) directly to the public internet, even with Basic Authentication enabled. It is much safer to keep the application internal and access it via a Reverse Proxy (with HTTPS) or a secure VPN like Tailscale.
+**⚠️ IMPORTANT:** Do not expose the application port (e.g., `5000`) directly to the public internet. Use one of the following secure methods:
 
-### Method 1: Website Runtime via 1Panel (Recommended)
+### 1. Reverse Proxy via 1Panel (Recommended for Public Access)
 
-1Panel allows you to create a website that connects directly to your Python application container. This automatically sets up the proxy and SSL.
+If you want to access the viewer via a domain name with HTTPS:
 
-1. **Step 1: Create Python Runtime**
-   - Go to **Websites > Runtimes > Python** and click **Create Python App**.
-   - **Name:** `1pwaf-viewer`
-   - **Application Directory:** `/home/ubuntu/1pwaf-viewer` (adjust to your actual path)
-   - **Run script:** `pip install -r requirements.txt && gunicorn -w 4 -b 0.0.0.0:5000 app:app`
-   - **App port:** `5000`
-   - **External port:** Leave it empty (to keep it private from the public internet).
-   - **External access:** Disable.
-2. **Step 2: Create the Website**
-   - Go to **Websites > Websites** and click **Create Website**.
-   - Select the **Runtime** tab.
-   - **Type:** Choose `Python`.
-   - **Runtime:** Select the `1pwaf-viewer` runtime you created in Step 1.
-   - **Primary domain:** Enter your domain (e.g., `waf.yourdomain.com`).
-3. **Step 3: Enable HTTPS**
-   - After the website is created, go to the website settings and enable **HTTPS/SSL** to ensure your Basic Auth credentials are encrypted.
+1. In 1Panel, go to **Websites > Websites** and click **Create Website**.
+2. Select **Proxy** tab.
+3. **Primary domain:** Enter your domain (e.g., `waf.yourdomain.com`).
+4. **Proxy Protocol:** `http`
+5. **Target IP:** `127.0.0.1` (or the server's internal IP).
+6. **Target Port:** `5000` (or whatever `APP_PORT` you set in `.env`).
+7. **Enable HTTPS/SSL:** Go to the website settings after creation and enable SSL to ensure your Basic Auth credentials are encrypted.
 
-> **Important:** Since the app runs inside a container, ensure that the container has volume mappings or permissions to read the OpenResty WAF database directory (`/opt/1panel/apps/openresty/openresty/1pwaf/data/db`). You may need to add this path to the **Volume** configuration when creating the Python Runtime.
-
-> **Important:** Since the app runs inside a container, ensure that the container has volume mappings or permissions to read the OpenResty WAF database directory, or configure `WAF_DATA_DIR` in your `.env` file appropriately.
-
-### Method 2: Access via Tailscale (VPN)
+### 2. Access via Tailscale (Secure Private Access)
 
 If you do not want to expose the viewer to the public internet at all (no public domain required):
 
 1. Install Tailscale on your server and your local machine.
-2. When deploying the app (or running Gunicorn), bind it exclusively to your Tailscale IP address (e.g., `100.x.y.z:5000`) or keep it on `127.0.0.1` and use a local web server (like Nginx) to proxy requests from the Tailscale interface.
-3. Access the viewer securely through your browser using your server's Tailscale IP address. This completely hides the application from public network scans.
+2. Access the viewer securely through your browser using your server's Tailscale IP address: `http://100.x.y.z:5000`.
+3. This completely hides the application from public network scans while keeping it accessible from your private network.
