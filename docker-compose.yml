@@ -9,5 +9,5 @@ services:
     environment:
       - WAF_DATA_DIR=/waf_data
     volumes:
-      - ${WAF_DATA_DIR:-/opt/1panel/apps/openresty/openresty/1pwaf/data}:/waf_data:ro
+      - ${WAF_DATA_DIR:-/opt/1panel/apps/openresty/openresty/1pwaf/data}:/waf_data
     restart: unless-stopped
