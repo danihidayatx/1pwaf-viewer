@@ -39,7 +39,6 @@ if os.path.exists(DB_DIR):
 print(f"[*] ==========================================", flush=True)
 
 def get_db_connection(db_path):
-    print(f"[DB] Attempting to connect to: {db_path}", flush=True)
     if not os.path.exists(db_path):
          print(f"[DB ERROR] Database file does NOT exist: {db_path}", flush=True)
     try:
