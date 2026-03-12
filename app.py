@@ -28,12 +28,29 @@ DATA_DIR = env_data_dir if env_data_dir and os.path.exists(env_data_dir) else LO
 
 DB_DIR = os.path.join(DATA_DIR, 'db')
 
-print(f"[*] Using Database Directory: {DB_DIR}")
+print(f"[*] ==========================================", flush=True)
+print(f"[*] ENV WAF_DATA_DIR: {env_data_dir}", flush=True)
+print(f"[*] Resolved DATA_DIR: {DATA_DIR}", flush=True)
+print(f"[*] Resolved DB_DIR: {DB_DIR}", flush=True)
+print(f"[*] Path Exists (DATA_DIR)? {os.path.exists(DATA_DIR)}", flush=True)
+print(f"[*] Path Exists (DB_DIR)? {os.path.exists(DB_DIR)}", flush=True)
+if os.path.exists(DB_DIR):
+    print(f"[*] Files in DB_DIR: {os.listdir(DB_DIR)}", flush=True)
+print(f"[*] ==========================================", flush=True)
 
 def get_db_connection(db_path):
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    return conn
+    print(f"[DB] Attempting to connect to: {db_path}", flush=True)
+    if not os.path.exists(db_path):
+         print(f"[DB ERROR] Database file does NOT exist: {db_path}", flush=True)
+    try:
+        # uri=True enables read-only mode, avoiding write-lock issues in mounted volumes
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        conn.row_factory = sqlite3.Row
+        return conn
+    except Exception as e:
+        print(f"[DB ERROR] Failed to connect to {db_path}: {e}", flush=True)
+        raise
+
 
 @app.route('/')
 def index():
