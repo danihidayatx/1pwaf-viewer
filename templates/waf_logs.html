@@ -39,6 +39,7 @@
                         <th>URI</th>
                         <th>Reason / Rule</th>
                         <th>Action / Status</th>
+                        <th>Detail</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -46,6 +47,30 @@
             </table>
         </div>
     </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailModalLabel">Request Detail</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+            <h6><strong>Attack Info</strong></h6>
+            <p class="mb-1"><strong>Rule Type:</strong> <span id="modalRuleType"></span></p>
+            <p class="mb-1"><strong>Match Value (Payload):</strong></p>
+            <pre class="bg-light p-2 border rounded" id="modalMatchValue" style="white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto;"></pre>
+        </div>
+        <div>
+            <h6><strong>Raw Headers (Nginx Log)</strong></h6>
+            <pre class="bg-dark text-light p-2 rounded" id="modalNginxLog" style="white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto;"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -104,6 +129,13 @@ $(document).ready(function() {
                     }
                     return badges;
                 }
+            },
+            {
+                "data": null,
+                "orderable": false,
+                "render": function() {
+                    return `<button class="btn btn-sm btn-outline-info view-detail-btn">View</button>`;
+                }
             }
         ],
         "order": [[0, "desc"]]
@@ -111,6 +143,30 @@ $(document).ready(function() {
 
     $('#serverNameSelect').change(function() {
         table.ajax.reload();
+    });
+
+    // Detail Button Click Handler
+    $('#wafLogsTable tbody').on('click', '.view-detail-btn', function() {
+        let data = table.row($(this).parents('tr')).data();
+        if (!data) return;
+
+        $('#modalRuleType').text(data.rule_type || '-');
+        
+        let matchVal = data.match_value || '-';
+        if (data.match_value) {
+            try {
+                // Decode base64 and handle UTF-8
+                matchVal = decodeURIComponent(escape(window.atob(data.match_value)));
+            } catch(e) {
+                console.warn("Failed to decode match_value base64", e);
+            }
+        }
+        $('#modalMatchValue').text(matchVal);
+        
+        $('#modalNginxLog').text(data.nginx_log || '-');
+        
+        let modal = new bootstrap.Modal(document.getElementById('detailModal'));
+        modal.show();
     });
 });
 </script>

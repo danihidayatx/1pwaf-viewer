@@ -2,6 +2,8 @@
 
 A lightweight, interactive Python Flask-based viewer application to read WAF attack logs and website traffic logs directly from the built-in SQLite database of **1Panel OpenResty WAF**.
 
+![1Panel WAF Viewer Screenshot](static/img/1pwaf-viewer.png)
+
 This application reads data directly from the 1Panel WAF production directory in *real-time* without the need to copy or duplicate the database. It features a Bootstrap 5 and DataTables-based interface for fast searching, sorting, and pagination, even for tens of thousands of log rows.
 
 ## Features

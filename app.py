@@ -154,6 +154,9 @@ def api_waf_logs():
                 'is_block': log['is_block'],
                 'match_rule': log['match_rule'],
                 'exec_rule': log['exec_rule'],
+                'rule_type': log['rule_type'],
+                'match_value': log['match_value'],
+                'nginx_log': log['nginx_log'],
                 'user_agent': log['user_agent'],
                 'action': log['action']
             })
